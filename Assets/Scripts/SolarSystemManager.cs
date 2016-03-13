@@ -7,6 +7,8 @@ public class SolarSystemManager : MonoBehaviour {
     List<SpaceObject> planets;
     public SpaceObject sun;
 
+    public float forceMult = 1;
+
     float G = 0.000667f;
 
     // Use this for initialization
@@ -22,34 +24,41 @@ public class SolarSystemManager : MonoBehaviour {
             if (planets[i].ObjectType != ESpaceObjectType.STAR)
             {
                 float vx = 0;
-                float vy = (Mathf.Sqrt(G * planets[i].mass / Vector3.Distance(sun.transform.position, planets[i].transform.position)));
+                float vy = (Mathf.Sqrt(G * (planets[i].mass + sun.mass) / Vector3.Distance(sun.transform.position, planets[i].transform.position)));
                 if(planets[i].transform.position.x > 0)
                 {
                     vy = -vy;
                 }
                 planets[i].SetVelocity(vx, vy);
             }
+            else
+            {
+                planets.RemoveAt(i);
+            }
         }
     }
 
 
     void Update()
-    {
-        for (int p1 = 0; p1 < planets.Count; p1++)
-        {
-            planets[p1].SetAcceleration(0,0, 0);
-            for (int p2 = 0; p2 < planets.Count; p2++)
-            {
-                if (p1 != p2 && planets[p2].ObjectType != ESpaceObjectType.STAR)
-                {
-                    Vector3 delta = planets[p2].transform.position - planets[p1].transform.position;
-                    float D = Mathf.Sqrt(Mathf.Pow(delta.x, 2) + Mathf.Pow(delta.z, 2) + Mathf.Pow(delta.y, 2));
-                    float A = G * planets[p2].mass / Mathf.Pow(D, 2);
-                    Vector3 oldA = planets[p1].GetAcceleration();
-                    planets[p1].SetAcceleration(oldA + delta * A / D);
-                }
-            }
-        }
+    { //NEGLIGER LES FORCES TROP PETITES
+        //for (int p1 = 0; p1 < planets.Count; p1++)
+        //{
+        //    planets[p1].SetAcceleration(0,0, 0);
+        //    for (int p2 = 0; p2 < planets.Count; p2++)
+        //    {
+        //        if (p1 != p2)// && planets[p2].ObjectType != ESpaceObjectType.STAR)
+        //        {
+        //            Vector3 delta = (planets[p2].transform.position - planets[p1].transform.position);
+        //            float D = Mathf.Sqrt(Mathf.Pow(delta.x, 2) + Mathf.Pow(delta.z, 2) + Mathf.Pow(delta.y, 2));
+        //            float A = G * planets[p2].mass / Mathf.Pow(D, 2);
+        //            A *= forceMult;
+        //            Vector3 oldA = planets[p1].GetAcceleration();
+        //            planets[p1].SetAcceleration(oldA + delta * A / D);
+        //        }
+        //    }
+        //}
+
+        ComputeSunAttraction();
 
         sun.UpdatePosition();
         Vector3 sunPosition = sun.transform.position;
@@ -60,10 +69,21 @@ public class SolarSystemManager : MonoBehaviour {
             {
                 planets[p1].UpdatePosition();
             }
-            planets[p1].transform.position -= sunPosition;
+            //planets[p1].transform.position -= sunPosition;
         }
+    }
 
-
+    void ComputeSunAttraction()
+    {
+        foreach (SpaceObject item in planets)
+        {
+            item.SetAcceleration(0, 0, 0);
+            Vector3 line = sun.transform.position - item.transform.position;
+            float D = Mathf.Sqrt(Mathf.Pow(line.x, 2) + Mathf.Pow(line.z, 2) + Mathf.Pow(line.y, 2));
+            float A = G * sun.mass * item.mass / Mathf.Pow(D, 2);
+            line.Normalize();
+            item.SetAcceleration(line * A / D);
+        }
     }
 
 
